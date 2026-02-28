@@ -1,0 +1,358 @@
+from flask import Flask, render_template_string, request
+import requests
+import os
+
+app = Flask(__name__)
+
+# 🔧 KONFIGURACIJA – OVO POPUNI
+# Ako ti je panel drugi, samo promijeni URL, API KEY i SERVICE_ID.
+PANEL_URL = "https://godofpanel.com/api/v2"  # ili tvoj tačni JAP domen
+API_KEY = "f82ab8846492a0842480a8a6eb154e59"
+SERVICE_ID = 3819  # TikTok Custom Comments na JAP-u
+
+# 🔁 LISTE KOMENTARA – TVOJE LISTE
+
+# ✅ COMMENTS_SET_1 = PRVI BLOK koji si poslao
+COMMENTS_SET_1 = [
+  "Crazy to think I nearly overlooked the book Encrypted Money Code by Ethan Rothwell… it honestly feels like something we were never supposed to discover.",
+"Guys… just look at what's been happening lately. Stuff people laughed at a few years ago is now right in front of us. I read the book Encrypted Money Code by Ethan Rothwell and it honestly helped me see what's actually going on behind the scenes and how to make money acutally works .",
+"People blame those who try to learn something about money and business through books, but the influence of today's books has proven that you can succeed much faster with their help. Ethan Rothwell's influential book Encrypted Money Code explains why.",
+"I wish someone told me to read Encrypted Money Code by Ethan Rothwell sooner, you have no idea how powerful those chapters are.",
+"The only book that’s ever actually helped me with money, motivation, confidence and the way I think about myself is Encrypted Money Code by Ethan Rothwell. I’ve tried therapy, courses, videos, but nothing hit me like this. The way the author explains how bussines world works and transformation is just insane. Just read the book and thank me later",
+"I know it’s cliche to recommend books through comments and say like “it changed my life” or whatever, but I need to recommend this one: Encrypted Money Code by Ethan Rothwell, it showed me one crazy side of money and how bussines works.",
+"People always are sceptic when it comes to reading something and I was one of those. And I randomly saw that people highly recommend the book Encrypted Money Code by Ethan Rothwell. And really, after reading it, I couldn't believe that one book could turn my life around like this. Here I am now, 2 months later, already making a very good amount of money online just because of this book",
+"GUYS someone has to tell me they’ve also read Encrypted Money Code by Ethan Rothwell. I can’t believe what I read and what information I got and how money and the system works.",
+"COME ON PEOPLE someone has to tell me that they have also read Encrypted Money Code by Ethan Rothwell. I can't believe what I read and what information I got and how money and the system works.",
+"Just to tell all of you positive people who will support when someone succeeds. And precisely because I succeeded, I want to tell you that the book Encrypted Money Code by Ethan Rothwell helped me a lot. Maybe someone reading this will succeed just because of what I just recommended",
+"People blame those who try to learn something about money and business through books, but the influence of today's books has proven that you can succeed much faster with their help. Encrypted Money Code by Ethan Rothwell explains why.",
+]
+
+
+# ✅ COMMENTS_SET_2 = DRUGI BLOK koji si poslao
+COMMENTS_SET_2 = [
+  "No influencer, no coach, no “guru” ever hit me the way Money Unseen Foundations by Michael Grantwell did. It’s raw, uncomfortable, and it forces you to see how really you can make money online.",
+"I'm telling you, book called Money Unseen Foundations by Michael Grantwell is on another level. You HAVE to experience it. It will change your life.",
+"Plot twist – You seeing this comment about Money Unseen Foundations by Michael Grantwell isn’t random – Nothing is.",
+"If you read only one book this year, let it be Money Unseen Foundations by Michael Grantwell. It will transform your life.",
+"I know it’s cliche to recommend books through comments and say like “it changed my life” or whatever, but I need to recommend this one: Money Unseen Foundations by Michael Grantwell, ngl Insane hidden information there.",
+"I used to think making money online was too hard for someone who didn’t know much about it, but this book really worked for me. It’s called Money Unseen Foundations by Michael Grantwell. It helped me succeed and start making money, ngl everyone should read it.",
+"Why is no one talking about Money Unseen Foundations by Michael Grantwell? This book messed with my whole perception of money and actually how are we getting controlled.",
+"I spent so much time struggling on the internet, searching for something that would change my life. All I can say is I finally found it. Money Unseen Foundations by Michael Grantwell is an absolute game-changer. This book is like nothing I've ever seen before.",
+"I spent so much time struggling on the internet, searching for something that would change my life. All I can say is I finally found it. Money Unseen Foundations by Michael Grantwell is an absolute game-changer. This book is like nothing I've ever seen before.",
+"No more gatekeeping just go and read the book Money Unseen Foundations by Michael Grantwell and thank me later for changing your life.",
+]
+
+HTML_TEMPLATE = """
+<!doctype html>
+<html>
+<head>
+  <title>TikTok Custom Comments Sender</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: #050816;
+      color: #f9fafb;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 900px;
+      width: 100%;
+      padding: 24px 16px 48px;
+    }
+
+    .card {
+      background: rgba(15, 23, 42, 0.95);
+      border-radius: 18px;
+      padding: 20px;
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.6);
+      border: 1px solid rgba(148, 163, 184, 0.3);
+    }
+
+    h1 {
+      font-size: 24px;
+      margin-bottom: 4px;
+      text-align: center;
+    }
+
+    .subtitle {
+      text-align: center;
+      font-size: 13px;
+      color: #9ca3af;
+      margin-bottom: 18px;
+    }
+
+    label {
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 6px;
+      display: inline-block;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 200px;
+      background: rgba(15, 23, 42, 0.9);
+      border-radius: 12px;
+      border: 1px solid rgba(55, 65, 81, 0.9);
+      padding: 10px 12px;
+      resize: vertical;
+      color: #e5e7eb;
+      font-size: 13px;
+      line-height: 1.4;
+      outline: none;
+    }
+
+    textarea:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.6);
+    }
+
+    .hint {
+      font-size: 11px;
+      color: #9ca3af;
+      margin-top: 4px;
+    }
+
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin: 16px 0;
+    }
+
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 10px 20px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.15s ease;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: white;
+      box-shadow: 0 10px 25px rgba(79, 70, 229, 0.6);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 12px 30px rgba(79, 70, 229, 0.8);
+    }
+
+    .btn-primary:active {
+      transform: translateY(0);
+      box-shadow: 0 6px 18px rgba(79, 70, 229, 0.6);
+    }
+
+    .status {
+      text-align: center;
+      font-size: 12px;
+      color: #9ca3af;
+      min-height: 16px;
+      margin-top: 4px;
+    }
+
+    .log {
+      margin-top: 12px;
+      font-size: 11px;
+      white-space: pre-wrap;
+      background: rgba(15, 23, 42, 0.85);
+      border-radius: 10px;
+      padding: 10px;
+      border: 1px solid rgba(55,65,81,0.9);
+      max-height: 260px;
+      overflow: auto;
+    }
+
+    .radio-group {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      margin-top: 8px;
+      font-size: 13px;
+    }
+
+    .radio-group label {
+      font-weight: 400;
+      margin: 0;
+    }
+
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>TikTok Custom Comments Sender</h1>
+      <div class="subtitle">
+        Nalepi TikTok <b>VIDEO linkove</b> (jedan po liniji), izaberi listu komentara i pusti da app pošalje sve ordere na panel (service {{ service_id }}).<br>
+        Link se šalje PANELU TAČNO onakav kakav ga ovde nalepiš (bez ikakve konverzije).
+      </div>
+
+      <form method="post">
+        <label for="input_links">Video linkovi</label>
+        <textarea id="input_links" name="input_links" placeholder="Primer:
+https://vm.tiktok.com/ZMHTTNkcWmPVu-YrDtq/
+https://vm.tiktok.com/ZMHTTNStjBu8S-bAkas/
+https://www.tiktok.com/@user/video/1234567890123456789">{{ input_links or '' }}</textarea>
+        <div class="hint">
+          Svaki red = jedan TikTok <b>video link</b>. Može biti mobile ili PC, panel dobija isto što ovde nalepiš.
+        </div>
+
+        <div style="margin-top:14px;">
+          <span style="font-size:13px;font-weight:500;">Izaberi set komentara:</span>
+          <div class="radio-group">
+            <label>
+              <input type="radio" name="comment_set" value="set1" {% if comment_set == 'set1' %}checked{% endif %}>
+              Komentari #1 ({{ comments1_count }} kom)
+            </label>
+            <label>
+              <input type="radio" name="comment_set" value="set2" {% if comment_set == 'set2' %}checked{% endif %}>
+              Komentari #2 ({{ comments2_count }} kom)
+            </label>
+          </div>
+          <div class="hint">
+            Svi komentari iz seta se šalju kao Custom Comments list (po jedan u svakom redu).
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button type="submit" name="submit_action" value="send" class="btn-primary">🚀 Send to panel (API)</button>
+        </div>
+      </form>
+
+      <div class="status">{{ status or '' }}</div>
+      {% if log %}
+      <div class="log">{{ log }}</div>
+      {% endif %}
+    </div>
+  </div>
+</body>
+</html>
+"""
+
+def send_comments_order(video_link: str, comments_list: list[str]):
+    """
+    Šalje JEDAN order na JAP za TikTok custom comments.
+    video_link -> link videa (mobile ili PC, šaljemo kako je nalijepljen).
+    comments_list -> lista stringova, svaki komentar u posebnom redu.
+    """
+    comments_text = "\n".join(comments_list)
+
+    payload = {
+        "key": API_KEY,
+        "action": "add",
+        "service": SERVICE_ID,
+        "link": video_link,
+        "comments": comments_text,
+    }
+
+    try:
+        r = requests.post(PANEL_URL, data=payload, timeout=20)
+        try:
+            data = r.json()
+        except Exception:
+            return False, f"HTTP {r.status_code}, body={r.text[:200]}"
+
+        if "order" in data:
+            return True, f"order={data['order']}"
+        else:
+            return False, f"resp={data}"
+    except Exception as e:
+        return False, f"exception={e}"
+
+@app.route("/", methods=["GET", "POST"])
+def index():
+    input_links = ""
+    status = ""
+    log_lines = []
+    comment_set = "set1"
+
+    if request.method == "POST":
+        comment_set = request.form.get("comment_set", "set1")
+        input_links = request.form.get("input_links", "")
+        lines = [l.strip() for l in input_links.splitlines() if l.strip()]
+
+        if comment_set == "set2":
+            comments = COMMENTS_SET_2
+            set_name = "Komentari #2"
+        else:
+            comments = COMMENTS_SET_1
+            set_name = "Komentari #1"
+
+        if not comments:
+            status = "⚠ Odabrani set komentara je PRAZAN – popuni COMMENTS_SET_1 / 2 u kodu."
+        else:
+            sent_ok = 0
+            sent_fail = 0
+            log_lines.append(f"Korišćen set: {set_name} ({len(comments)} komentara)")
+            log_lines.append(f"Slanje na {PANEL_URL}, service={SERVICE_ID}")
+            log_lines.append("")
+
+            for raw_link in lines:
+                link_to_send = raw_link.strip()
+                if not link_to_send:
+                    sent_fail += 1
+                    log_lines.append(f"[SKIP] Prazan link u liniji.")
+                    continue
+
+                ok, msg = send_comments_order(link_to_send, comments)
+                if ok:
+                    sent_ok += 1
+                    log_lines.append(f"[OK] {link_to_send} -> {msg}")
+                else:
+                    sent_fail += 1
+                    log_lines.append(f"[FAIL] {link_to_send} -> {msg}")
+
+            status = f"Gotovo. Linija: {len(lines)}, uspešnih ordera: {sent_ok}, fail: {sent_fail}."
+
+    log = "\n".join(log_lines) if log_lines else ""
+
+    return render_template_string(
+        HTML_TEMPLATE,
+        input_links=input_links,
+        status=status,
+        log=log,
+        comment_set=comment_set,
+        comments1_count=len(COMMENTS_SET_1),
+        comments2_count=len(COMMENTS_SET_2),
+        service_id=SERVICE_ID,
+    )
+
+import os
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8080))  # Railway postavi PORT (kod tebe će biti 8880)
+    app.run(host="0.0.0.0", port=port)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
